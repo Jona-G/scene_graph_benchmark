@@ -3,11 +3,11 @@ import os
 import sys
 
 try:
-    from torch.hub import _download_url_to_file
+    from torch.hub import download_url_to_file
     from torch.hub import urlparse
     from torch.hub import HASH_REGEX
 except ImportError:
-    from torch.utils.model_zoo import _download_url_to_file
+    from torch.utils.model_zoo import download_url_to_file
     from torch.utils.model_zoo import urlparse
     from torch.utils.model_zoo import HASH_REGEX
 
@@ -17,7 +17,7 @@ from maskrcnn_benchmark.utils.comm import synchronize
 
 # very similar to https://github.com/pytorch/pytorch/blob/master/torch/utils/model_zoo.py
 # but with a few improvements and modifications
-def cache_url(url, model_dir=None, progress=True):
+def cache_url(url, model_dir='model', progress=True):
     r"""Loads the Torch serialized object at the given URL.
     If the object is already present in `model_dir`, it's deserialized and
     returned. The filename part of the URL should follow the naming convention
@@ -38,7 +38,7 @@ def cache_url(url, model_dir=None, progress=True):
         torch_home = os.path.expanduser(os.getenv("TORCH_HOME", "~/.torch"))
         model_dir = os.getenv("TORCH_MODEL_ZOO", os.path.join(torch_home, "models"))
     if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
+        os.makedirs(model_dir, exist_ok=True)
     parts = urlparse(url)
     filename = os.path.basename(parts.path)
     if filename == "model_final.pkl":
@@ -46,7 +46,7 @@ def cache_url(url, model_dir=None, progress=True):
         # so make the full path the filename by replacing / with _
         filename = parts.path.replace("/", "_")
     cached_file = os.path.join(model_dir, filename)
-    if not os.path.exists(cached_file) and is_main_process():
+    if not os.path.exists(cached_file):
         sys.stderr.write('Downloading: "{}" to {}\n'.format(url, cached_file))
         hash_prefix = HASH_REGEX.search(filename)
         if hash_prefix is not None:
@@ -56,6 +56,6 @@ def cache_url(url, model_dir=None, progress=True):
             # if the hash_prefix is less than 6 characters
             if len(hash_prefix) < 6:
                 hash_prefix = None
-        _download_url_to_file(url, cached_file, hash_prefix, progress=progress)
+        download_url_to_file(url, cached_file, hash_prefix, progress=progress)
     synchronize()
     return cached_file
